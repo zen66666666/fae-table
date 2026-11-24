@@ -1,0 +1,110 @@
+/* 调整首次向导、连接设置和资料目录输入，供设置卡片复用。 */
+.setup-page {
+  --setup-width: 960px;
+  --setup-navigation-width: 220px;
+  --setup-step-height: 44px;
+  --setup-number-size: 24px;
+  width: min(calc(100% - 2 * var(--space-4)), var(--setup-width));
+  margin: var(--space-6) auto;
+}
+.setup-layout {
+  display: grid;
+  grid-template-columns: var(--setup-navigation-width) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+.setup-navigation ol {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  list-style: none;
+}
+.setup-step,
+.setup-navigation .button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  min-height: var(--setup-step-height);
+  width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--color-muted);
+  text-align: left;
+  font-weight: var(--weight-normal);
+}
+.setup-step-number {
+  display: grid;
+  flex: 0 0 var(--setup-number-size);
+  place-items: center;
+  height: var(--setup-number-size);
+  border-radius: var(--radius-pill);
+  background: var(--color-tag);
+  font-size: var(--font-xs);
+}
+.setup-navigation [aria-current='step'] .setup-step,
+.setup-navigation .button[aria-current='true'] {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+.setup-navigation [aria-current='step'] .setup-step-number {
+  background: var(--color-primary);
+  color: var(--color-inverse);
+}
+.setup-step[data-complete='true'] {
+  color: var(--color-text);
+}
+.setup-step[data-complete='true'] .setup-step-number {
+  color: var(--color-reply-replied-text);
+  background: var(--color-reply-replied-bg);
+  font-weight: var(--weight-semibold);
+}
+.setup-card-footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+}
+.setup-card-actions,
+.setup-card-primary,
+.catalog-folder-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.setup-card-actions {
+  flex-wrap: wrap;
+}
+.setup-card-primary {
+  margin-inline-start: auto;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.catalog-folder-row > input {
+  flex: 1;
+  min-width: 0;
+}
+.catalog-folder-row > .button {
+  flex-shrink: 0;
+}
+
+@media (width < 640px) {
+  .setup-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .setup-navigation ol {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (width < 440px) {
+  .setup-navigation ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-folder-row {
+    flex-wrap: wrap;
+  }
+  .catalog-folder-row > input {
+    flex-basis: 100%;
+  }
+}

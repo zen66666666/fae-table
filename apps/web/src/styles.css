@@ -1,0 +1,184 @@
+/* 定义设计变量、全局排版与焦点及滚动条，由浏览器入口加载。 */
+:root {
+  --font-family: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-lg: 16px;
+  --font-dialog: 18px;
+  --font-xl: 20px;
+  --font-heading: 24px;
+  --line-body: 1.6;
+  --line-heading: 1.4;
+  --weight-normal: 400;
+  --weight-semibold: 600;
+  --color-text: #18292a;
+  --color-secondary: #4e6163;
+  --color-muted: #5d6f71;
+  --color-bg: #edf1f0;
+  --color-surface: #ffffff;
+  --color-subtle: #f3f6f5;
+  --color-decision: #f6f9f8;
+  --color-tag: #eef2f1;
+  --color-line: var(--color-bg);
+  --color-divider: #e1e8e6;
+  --color-header-divider: #dde4e2;
+  --color-control: #cbd5d3;
+  --color-primary: #146b5e;
+  --color-primary-hover: #0e4f45;
+  --color-primary-subtle: #e9f3f1;
+  --color-approve: #1f7a55;
+  --color-reject: #963049;
+  --color-reject-border: #d9a2b0;
+  --color-success: #2e9a6b;
+  --color-attention: #b4540a;
+  --color-error: #b42318;
+  --color-inverse: var(--color-surface);
+  --color-disabled: #6e7f81;
+  --color-focus-halo: rgba(20, 107, 94, 0.15);
+  --color-reply-ack-text: #8a4b08;
+  --color-reply-ack-bg: #fcefd9;
+  --color-reply-transfer-text: #5e3a92;
+  --color-reply-transfer-bg: #efe7fa;
+  --color-reply-unreplied-text: var(--color-reject);
+  --color-reply-unreplied-bg: #fbe6ec;
+  --color-reply-replied-text: #1d6b4b;
+  --color-reply-replied-bg: #e2f2ea;
+  --color-reply-waiting-text: #235891;
+  --color-reply-waiting-bg: #e4eefa;
+  --color-reply-ended-text: var(--color-secondary);
+  --color-reply-ended-bg: var(--color-tag);
+  --radius-none: 0;
+  --radius-label: 6px;
+  --radius-control: 10px;
+  --radius-list: 12px;
+  --radius-card: 14px;
+  --radius-pill: 999px;
+  --radius-tail: 4px;
+  --radius-brand: 8px;
+  --space-1: 4px;
+  --space-1-half: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-3-half: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --button-height: 36px;
+  --button-height-small: 32px;
+  --height-small: 30px;
+  --height-resource-row: 44px;
+  --height-resource-details: 300px;
+  --input-height: 40px;
+  --shadow-card: 0 1px 2px rgba(16, 40, 36, 0.06);
+  --shadow-selected: inset 0 0 0 1px var(--color-primary);
+  --shadow-focus: 0 0 0 3px var(--color-focus-halo);
+  --shadow-modal: 0 12px 32px rgba(16, 40, 36, 0.18);
+  --overlay-modal: rgba(16, 40, 36, 0.45);
+  --overlay-image: rgba(8, 16, 15, 0.88);
+  --color-overlay-control: rgba(255, 255, 255, 0.15);
+  --color-overlay-control-hover: rgba(255, 255, 255, 0.25);
+  --scrollbar-width: 8px;
+
+  font-family: var(--font-family);
+  font-size: var(--font-base);
+  font-weight: var(--weight-normal);
+  line-height: var(--line-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-control) transparent;
+}
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-control);
+  border-radius: var(--radius-pill);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+summary {
+  cursor: pointer;
+}
+:disabled {
+  cursor: not-allowed;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1,
+h2,
+h3,
+strong {
+  font-weight: var(--weight-semibold);
+}
+h1,
+h2,
+h3 {
+  line-height: var(--line-heading);
+}
+h1 {
+  font-size: var(--font-heading);
+}
+h2 {
+  font-size: var(--font-lg);
+}
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.stopped-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  text-align: center;
+}
+.stopped-page p {
+  color: var(--color-muted);
+}
+.stopped-symbol {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-size: var(--font-heading);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

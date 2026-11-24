@@ -1,0 +1,44 @@
+# 忽略依赖、生成文件、本机数据和凭据，防止提交到仓库。
+# 依赖与构建输出
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.vite/
+*.tsbuildinfo
+__pycache__/
+.venv/
+*.pyc
+
+# 真实业务数据和原始输出仅保存在本机
+/.runtime/
+/private/
+/data/
+/artifacts/
+*.log
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.db
+*.db-*
+
+# 凭据与本机配置
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.dws/
+.codex/
+.workbuddy/
+*.local.json
+*.local.yaml
+*.local.yml
+
+# 规划方目录以及操作系统、编辑器状态
+.claude/
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/

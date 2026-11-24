@@ -1,0 +1,120 @@
+/* 定义中栏固定回复卡片与审批确认框。 */
+.ticket-content-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.ticket-content-scroll {
+  flex: 1;
+  padding-bottom: var(--space-1);
+}
+.ticket-reply {
+  flex-shrink: 0;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.ticket-reply > label {
+  color: var(--color-text);
+  font-size: var(--font-base);
+  font-weight: var(--weight-semibold);
+}
+.ticket-reply-input {
+  --growing-textarea-min-lines: 3;
+  --growing-textarea-max-lines: 8;
+}
+.ticket-reply-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ticket-reply-notices {
+  flex: 1 1 auto;
+  color: var(--color-muted);
+  font-size: var(--font-xs);
+}
+.ticket-reply-notices [role='alert'] {
+  color: var(--color-error);
+}
+.ticket-action-notice,
+.ticket-write-result {
+  flex-shrink: 0;
+  padding: 0 var(--space-4);
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.ticket-action-notice,
+.ticket-write-read-time,
+.ticket-write-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ticket-write-dialog {
+  width: min(480px, calc(100% - 2 * var(--space-4)));
+  max-height: calc(100dvh - 2 * var(--space-4));
+  padding: 0;
+  overflow: auto;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-modal);
+}
+.ticket-write-dialog::backdrop {
+  background: var(--overlay-modal);
+}
+.ticket-write-dialog-body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+}
+.ticket-write-dialog h2 {
+  font-size: var(--font-dialog);
+}
+.ticket-write-summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ticket-write-summary > p {
+  font-weight: var(--weight-semibold);
+}
+.ticket-write-read-time {
+  gap: 0;
+  font-size: var(--font-sm);
+  color: var(--color-muted);
+}
+.ticket-write-opinion {
+  display: grid;
+  gap: var(--space-1);
+}
+.ticket-write-opinion textarea {
+  width: 100%;
+  min-height: 6em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control);
+  border-radius: var(--radius-control);
+  resize: vertical;
+  color: inherit;
+  background: var(--color-surface);
+  font: inherit;
+}
+.ticket-write-warning {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--color-reply-ack-bg);
+  color: var(--color-reply-ack-text);
+  font-size: var(--font-sm);
+}
+.ticket-write-dialog-actions {
+  justify-content: flex-end;
+}

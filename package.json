@@ -1,0 +1,33 @@
+{
+  "name": "fae-workbench",
+  "version": "0.8.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "vite build --config apps/web/vite.config.ts",
+    "dev": "npm run build && node scripts/dev.ts",
+    "package": "npm run build && node scripts/package.ts",
+    "format": "prettier --write .",
+    "typecheck": "tsc -p .",
+    "check": "prettier --check . && npm run typecheck",
+    "probe:dingtalk": "node scripts/probes/dingtalk-readonly.ts",
+    "probe:event": "node scripts/probes/dingtalk-event.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.1.1",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "vite": "7.2.2"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.5.438",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  }
+}

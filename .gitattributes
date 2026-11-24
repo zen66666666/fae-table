@@ -1,0 +1,9 @@
+# 统一工程文本换行，并按二进制方式处理常见资料格式。
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.xlsx binary

@@ -1,0 +1,181 @@
+/* 定义左栏标题卡、窄条、分组和单据卡片，并复用集中定义的状态配色。 */
+.ticket-list-heading {
+  padding: var(--space-3-half) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.ticket-list-heading-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.ticket-list-heading h1 {
+  margin-right: auto;
+  font-size: var(--font-lg);
+}
+.ticket-list-heading .button {
+  flex-shrink: 0;
+}
+.ticket-list-collapse.button {
+  width: var(--button-height-small);
+  padding: 0;
+}
+.ticket-list-collapse > span,
+.ticket-group-arrow {
+  display: inline-block;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+.ticket-progress {
+  margin-top: var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+}
+.ticket-list-rail.button {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 64px;
+  padding: var(--space-2) 0;
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.ticket-list-rail .ticket-list-icon {
+  display: grid;
+  gap: 3px;
+  width: var(--space-4);
+}
+.ticket-list-icon > span {
+  height: 2px;
+  background: currentColor;
+}
+.ticket-list-rail .ticket-group-tag {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+.ticket-group {
+  margin-top: var(--space-3);
+}
+.ticket-group h2,
+.ticket-group > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+}
+.ticket-group > summary::-webkit-details-marker {
+  display: none;
+}
+.ticket-group-arrow {
+  margin-left: auto;
+  margin-right: var(--space-1);
+  transform: rotate(-135deg);
+}
+.ticket-group[open] .ticket-group-arrow {
+  transform: rotate(-45deg);
+}
+.ticket-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+.ticket-list-item.button {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1-half);
+  width: 100%;
+  padding: var(--space-3) var(--space-3-half);
+  border: 1px solid transparent;
+  border-radius: var(--radius-list);
+  text-align: left;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  font-weight: var(--weight-normal);
+}
+.ticket-list-item.button:hover {
+  border-color: var(--color-control);
+}
+.ticket-list-item.button[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-selected), var(--shadow-card);
+}
+.ticket-group--finished .ticket-list-item.button {
+  background: var(--color-decision);
+  color: var(--color-secondary);
+  box-shadow: none;
+}
+.ticket-group--finished .ticket-list-item.button[aria-pressed='true'] {
+  box-shadow: var(--shadow-selected);
+}
+.ticket-list-item-heading,
+.ticket-list-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ticket-list-title {
+  overflow-wrap: anywhere;
+}
+.ticket-list-wait {
+  font-size: var(--font-sm);
+  color: var(--color-secondary);
+  overflow-wrap: anywhere;
+}
+.ticket-template-tag,
+.ticket-group-tag {
+  display: inline-flex;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-xs);
+  line-height: var(--line-body);
+  color: var(--color-reply-ended-text);
+  background: var(--color-reply-ended-bg);
+}
+.ticket-template-tag {
+  border-radius: var(--radius-label);
+}
+.ticket-group-tag--pending,
+.ticket-group-tag--awaiting-receipt {
+  color: var(--color-reply-ack-text);
+  background: var(--color-reply-ack-bg);
+}
+.ticket-group-tag--transferred {
+  color: var(--color-reply-transfer-text);
+  background: var(--color-reply-transfer-bg);
+}
+.ticket-group-tag--unreplied {
+  color: var(--color-reply-unreplied-text);
+  background: var(--color-reply-unreplied-bg);
+}
+.ticket-group-tag--replied {
+  color: var(--color-reply-replied-text);
+  background: var(--color-reply-replied-bg);
+}
+.ticket-group-tag--awaiting-others {
+  color: var(--color-reply-waiting-text);
+  background: var(--color-reply-waiting-bg);
+}
+.ticket-verification {
+  font-size: var(--font-xs);
+  color: var(--color-muted);
+}
+.ticket-list-column .ticket-notice {
+  margin-top: var(--space-3);
+}

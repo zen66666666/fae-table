@@ -1,0 +1,185 @@
+/* 定义中栏标题和内容卡片，以及单据共用的读取提示。 */
+.ticket-empty {
+  padding: var(--space-6) var(--space-3);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: var(--font-sm);
+}
+.ticket-notice {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-reply-ack-bg);
+  color: var(--color-reply-ack-text);
+  font-size: var(--font-sm);
+}
+.ticket-notice strong {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+.ticket-notice--failure {
+  background: var(--color-reply-unreplied-bg);
+  color: var(--color-reply-unreplied-text);
+}
+.ticket-detail-content {
+  display: grid;
+  gap: var(--space-3);
+}
+.ticket-header,
+.ticket-section,
+.ticket-detail-unavailable {
+  min-width: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.ticket-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: calc(var(--space-4) + var(--space-1) / 2) var(--space-5);
+}
+.ticket-header-text {
+  flex: 1 1 15rem;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ticket-progress-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-xs);
+  color: var(--color-muted);
+}
+.ticket-progress-strip li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  overflow-wrap: anywhere;
+}
+.ticket-progress-strip li[data-complete='true'] {
+  color: var(--color-secondary);
+}
+.ticket-progress-strip li[aria-current='step'] {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.ticket-decision .ticket-decision-next {
+  color: var(--color-muted);
+  font-size: var(--font-xs);
+}
+.ticket-detail-title {
+  font-size: var(--font-xl);
+  line-height: var(--line-heading);
+  overflow-wrap: anywhere;
+}
+.ticket-metadata,
+.ticket-header-actions,
+.ticket-decision {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+.ticket-header-actions {
+  justify-content: flex-end;
+  margin-inline-start: auto;
+  gap: var(--space-2);
+}
+.ticket-decision {
+  justify-content: flex-end;
+  padding: calc(var(--space-2) + var(--space-1) / 2) var(--space-3);
+  border-radius: var(--radius-list);
+  background: var(--color-decision);
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.ticket-decision > span {
+  margin-inline-end: var(--space-1);
+}
+.ticket-meta-pill {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-xs);
+  overflow-wrap: anywhere;
+}
+.ticket-meta-pill:not(.ticket-group-tag) {
+  color: var(--color-secondary);
+  background: var(--color-tag);
+}
+.ticket-business-id {
+  border: 0;
+  cursor: pointer;
+  text-align: start;
+  font-family: inherit;
+  line-height: inherit;
+}
+.ticket-business-id:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+.ticket-section,
+.ticket-detail-unavailable {
+  padding: var(--space-4) var(--space-5);
+}
+.ticket-section h2 {
+  font-size: var(--font-lg);
+}
+.ticket-section > h2,
+.ticket-section-heading {
+  margin-bottom: var(--space-3);
+}
+.ticket-section-heading,
+.ticket-detail-unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ticket-detail-unavailable {
+  background: var(--color-subtle);
+  color: var(--color-muted);
+  font-size: var(--font-sm);
+}
+.ticket-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+.ticket-fields > div {
+  min-width: 0;
+}
+.ticket-fields [data-multiline='true'] {
+  grid-column: 1 / -1;
+}
+.ticket-fields dt,
+.ticket-fields dd {
+  overflow-wrap: anywhere;
+}
+.ticket-fields dt {
+  color: var(--color-muted);
+  font-size: var(--font-xs);
+}
+.ticket-fields dd {
+  margin: 0;
+  font-size: var(--font-base);
+  white-space: pre-wrap;
+}
+.ticket-fields [data-product-model='true'] dd {
+  font-weight: var(--weight-semibold);
+}

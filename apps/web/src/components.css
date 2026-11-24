@@ -1,0 +1,297 @@
+/* 定义通用按钮、表单、连接卡片和状态提示，供设置页与工作台复用。 */
+.growing-textarea {
+  --growing-textarea-line-height: calc(var(--font-base) * var(--line-body));
+  --growing-textarea-min-lines: 2;
+  --growing-textarea-inset: var(--space-4);
+  --growing-textarea-min-height: calc(
+    var(--growing-textarea-min-lines) * var(--growing-textarea-line-height) +
+      var(--growing-textarea-inset)
+  );
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.growing-textarea textarea,
+.growing-textarea::after {
+  grid-area: 1 / 1;
+  min-height: var(--growing-textarea-minimum, var(--growing-textarea-min-height));
+  max-height: calc(
+    var(--growing-textarea-max-lines) * var(--growing-textarea-line-height) +
+      var(--growing-textarea-inset)
+  );
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control);
+  border-radius: var(--growing-textarea-radius, var(--radius-control));
+  font: inherit;
+  line-height: var(--growing-textarea-line-height);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.growing-textarea::after {
+  /* 尾部空格让末尾换行也参与高度计算。 */
+  content: attr(data-value) ' ';
+  visibility: hidden;
+  overflow: hidden;
+}
+.growing-textarea textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  overflow-y: auto;
+  color: inherit;
+  background: var(--color-surface);
+}
+.button {
+  --button-background: var(--color-surface);
+  --button-hover: var(--color-subtle);
+  --button-border: var(--color-control);
+  --button-color: var(--color-text);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: var(--button-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius-control);
+  background: var(--button-background);
+  color: var(--button-color);
+  font-size: var(--font-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-heading);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.button--small {
+  min-height: var(--button-height-small);
+  padding-inline: var(--space-3);
+  font-size: var(--font-sm);
+}
+.button:hover:not(:disabled) {
+  background: var(--button-hover);
+}
+.button--primary {
+  --button-background: var(--color-primary);
+  --button-border: var(--color-primary);
+  --button-hover: var(--color-primary-hover);
+  --button-color: var(--color-inverse);
+}
+.button--quiet {
+  --button-background: transparent;
+  --button-border: transparent;
+  --button-color: var(--color-secondary);
+}
+.button--approve {
+  --button-background: var(--color-approve);
+  --button-border: var(--color-approve);
+  --button-hover: var(--color-primary-hover);
+  --button-color: var(--color-inverse);
+}
+.button--reject {
+  --button-border: var(--color-reject-border);
+  --button-hover: var(--color-reply-unreplied-bg);
+  --button-color: var(--color-reject);
+}
+.button--reject-solid {
+  --button-background: var(--color-reject);
+  --button-border: var(--color-reject);
+  --button-hover: var(--color-reject);
+  --button-color: var(--color-inverse);
+}
+.button:disabled {
+  background: var(--color-tag);
+  border-color: transparent;
+  color: var(--color-disabled);
+}
+.connection-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.card-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.connection-card h2 {
+  font-size: var(--font-dialog);
+}
+.card-description {
+  margin-top: var(--space-2);
+  color: var(--color-secondary);
+}
+.card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+}
+.card-actions {
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-xs);
+  color: var(--color-muted);
+  background: var(--color-tag);
+}
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  background: var(--color-status-dot, currentColor);
+  border-radius: var(--radius-pill);
+}
+.status-tag--ready {
+  --color-status-dot: var(--color-success);
+  color: var(--color-reply-replied-text);
+  background: var(--color-reply-replied-bg);
+}
+.status-tag--checking {
+  color: var(--color-reply-waiting-text);
+  background: var(--color-reply-waiting-bg);
+}
+.status-tag--action-required {
+  --color-status-dot: var(--color-attention);
+  color: var(--color-reply-ack-text);
+  background: var(--color-reply-ack-bg);
+}
+.status-tag--failed {
+  --color-status-dot: var(--color-error);
+  color: var(--color-error);
+  background: var(--color-reply-unreplied-bg);
+}
+.metadata,
+.pdf-summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+}
+.metadata {
+  justify-content: space-between;
+}
+.metadata span {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.muted,
+.field-hint {
+  color: var(--color-muted);
+  font-size: var(--font-xs);
+}
+.ready-message {
+  color: var(--color-reply-replied-text);
+  font-size: var(--font-sm);
+}
+.inline-message,
+.reason-notice {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  font-size: var(--font-sm);
+}
+.inline-message {
+  color: var(--color-secondary);
+  background: var(--color-subtle);
+}
+.reason-notice {
+  background: var(--color-reply-ack-bg);
+  color: var(--color-reply-ack-text);
+}
+.reason-notice strong {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+.profile-picker,
+.folder-form,
+.ai-field,
+.ai-form,
+.ai-model-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ai-form {
+  gap: var(--space-4);
+}
+.ai-current-model,
+.ai-test-result {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--color-subtle);
+}
+.ai-address-field {
+  display: grid;
+  gap: var(--space-2);
+}
+.ai-saved-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.ai-unencrypted {
+  color: var(--color-reply-ack-text);
+  font-size: var(--font-xs);
+}
+.ai-test-result {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--font-xs);
+}
+.ai-test-result[data-result] {
+  color: var(--color-error);
+  background: var(--color-reply-unreplied-bg);
+}
+.ai-test-result[data-result='available'] {
+  color: var(--color-reply-replied-text);
+  background: var(--color-reply-replied-bg);
+}
+.setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+label {
+  color: var(--color-secondary);
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+}
+input,
+select {
+  width: 100%;
+  min-height: var(--input-height);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-control);
+  border-radius: var(--radius-control);
+  font-size: var(--font-base);
+}
+:is(input, select, textarea):focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+:is(input, textarea)::placeholder {
+  color: var(--color-muted);
+}
+:is(input, select, textarea):disabled {
+  color: var(--color-disabled);
+  background: var(--color-tag);
+}
