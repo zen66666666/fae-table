@@ -130,6 +130,20 @@
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+.ticket-list-tags--transfer-out {
+  flex-wrap: nowrap;
+}
+.ticket-list-tags--transfer-out .ticket-group-tag {
+  flex-shrink: 0;
+}
+.ticket-list-transfer-handler {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: var(--font-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .ticket-list-title {
   overflow-wrap: anywhere;
 }
@@ -156,7 +170,8 @@
   color: var(--color-reply-ack-text);
   background: var(--color-reply-ack-bg);
 }
-.ticket-group-tag--transferred {
+.ticket-group-tag--transferred,
+.ticket-group-tag--transferred-out {
   color: var(--color-reply-transfer-text);
   background: var(--color-reply-transfer-bg);
 }
@@ -164,7 +179,8 @@
   color: var(--color-reply-unreplied-text);
   background: var(--color-reply-unreplied-bg);
 }
-.ticket-group-tag--replied {
+.ticket-group-tag--replied,
+.ticket-group-tag--transfer-activity {
   color: var(--color-reply-replied-text);
   background: var(--color-reply-replied-bg);
 }

@@ -50,6 +50,20 @@ export function isApprovalAgreement(record: { type: string; result: string | nul
 }
 
 /**
+ * 判断是否为明确的拒绝动作，兼容直接拒绝和普通任务的拒绝结果。
+ * @param record 归一化的大写动作和结果。
+ * @returns 已识别的拒绝动作返回 true。
+ * @throws 无预期错误。
+ */
+export function isApprovalRejection(record: { type: string; result: string | null }): boolean {
+  const { type, result } = record;
+  return (
+    REJECT_CODES.has(type) ||
+    (type === NORMAL_TASK_ACTION && result !== null && REJECT_CODES.has(result))
+  );
+}
+
+/**
  * 判断审批记录是否明确表示退回，供按处理时间计算单据进度使用。
  * @param record 大写的动作和结果代码，以及能核实退回的详情字段。
  * @returns 有已知的退回动作、结果或退回发起人的证据时为 true。
@@ -126,12 +140,7 @@ function matchesTaskAction(
   record: ApprovalWriteRecord,
   action: Exclude<TicketWriteAction, 'comment'>,
 ): boolean {
-  const { type, result } = record;
-  if (action === 'approve') return isApprovalAgreement(record);
-  return (
-    REJECT_CODES.has(type) ||
-    (type === NORMAL_TASK_ACTION && result !== null && REJECT_CODES.has(result))
-  );
+  return action === 'approve' ? isApprovalAgreement(record) : isApprovalRejection(record);
 }
 
 function hasNewSupplementalActor(options: {

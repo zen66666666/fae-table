@@ -5,7 +5,11 @@ import {
   getTicketHeading,
   getTicketReplyStatus,
 } from '../../../packages/core/src/index.ts';
-import type { TicketSummary } from '../../../packages/core/src/index.ts';
+import type {
+  TicketGroup,
+  TicketReplyStatus,
+  TicketSummary,
+} from '../../../packages/core/src/index.ts';
 import { TicketBusinessId } from './ticket-business-id.tsx';
 import { TICKET_COPY, TICKET_GROUP_LABELS, TICKET_REPLY_STATUS_LABELS } from './ticket-copy.ts';
 import { TicketProgressStrip } from './ticket-progress-strip.tsx';
@@ -24,6 +28,23 @@ export type TicketMetadataProps = {
   decision?: ReactNode;
 };
 
+function getStatusPill(summary: TicketSummary): {
+  tone: TicketGroup | TicketReplyStatus;
+  label: string;
+} {
+  const replyStatus = getTicketReplyStatus(summary);
+  const group = getTicketGroup(summary, replyStatus);
+  if (group === 'finished') return { tone: group, label: TICKET_GROUP_LABELS.finished };
+  if (group === 'transferred-out') return { tone: group, label: TICKET_COPY.transferredOut };
+  const status = TICKET_REPLY_STATUS_LABELS[replyStatus];
+  return group === 'transferred'
+    ? {
+        tone: group,
+        label: `${TICKET_GROUP_LABELS.transferred}${TICKET_COPY.countSeparator}${status}`,
+      }
+    : { tone: replyStatus, label: status };
+}
+
 /**
  * 展示发起人和模板、可复制的审批编号、日期、状态及操作。
  * @param props 当前安全摘要和已核实的操作区域。
@@ -38,15 +59,7 @@ export function TicketMetadata({
   isRefreshingTicket,
   decision,
 }: TicketMetadataProps): ReactElement {
-  const replyStatus = getTicketReplyStatus(summary);
-  const group = getTicketGroup(summary, replyStatus);
-  const isEnded = group === 'finished';
-  const isTransferred = group === 'transferred';
-  const tone = isEnded || isTransferred ? group : replyStatus;
-  const status = isEnded ? TICKET_GROUP_LABELS.finished : TICKET_REPLY_STATUS_LABELS[replyStatus];
-  const label = isTransferred
-    ? `${TICKET_GROUP_LABELS.transferred}${TICKET_COPY.countSeparator}${status}`
-    : status;
+  const { tone, label } = getStatusPill(summary);
   const { createdAt } = summary;
   return (
     <header className="ticket-header">
@@ -71,7 +84,9 @@ export function TicketMetadata({
             {label}
           </span>
         </div>
-        {!isEnded && summary.progress && <TicketProgressStrip progress={summary.progress} />}
+        {tone !== 'finished' && summary.progress && (
+          <TicketProgressStrip progress={summary.progress} />
+        )}
       </div>
       <div className="ticket-header-actions">
         {decision}

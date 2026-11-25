@@ -71,6 +71,33 @@ export function readTicketApprovalOperation(row: JsonObject): TicketApprovalOper
 }
 
 /**
+ * 读取本轮流程的时间原点，供进度和转出跟进共用。
+ * @param records 钉钉模块内部已合并、归一化的处理记录。
+ * @returns 最近一次退回或提交的时间及非重置动作，无法确认起点时返回 undefined。
+ * @throws 无预期错误。
+ */
+export function readTicketOperationEpoch(
+  records: readonly JsonObject[],
+): { operations: TicketApprovalOperation[]; lastReset: number } | undefined {
+  let lastReset = -Infinity;
+  const operations: TicketApprovalOperation[] = [];
+  for (const row of records) {
+    const record = readTicketApprovalOperation(row);
+    if (!record) {
+      // 空占位和纯附件行没有操作；已有任务或节点的记录可能是未知的处理动作。
+      if (readTicketText(row.activityId) || row.taskId != null) return;
+      continue;
+    }
+    if (!record.isReset) operations.push(record);
+    else {
+      if (!Number.isFinite(record.time)) return;
+      lastReset = Math.max(lastReset, record.time);
+    }
+  }
+  return { operations, lastReset };
+}
+
+/**
  * 识别有固定枚举证据的任务处理动作。
  * @param type 钉钉处理记录的大写动作代码。
  * @returns 同意、拒绝、退回或转交等已有明确含义的动作返回 true。

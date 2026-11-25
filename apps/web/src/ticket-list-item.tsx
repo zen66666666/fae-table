@@ -2,12 +2,8 @@
 import type { ReactElement } from 'react';
 import type { TicketListItem as TicketListEntry } from '../../../packages/core/src/index.ts';
 import { Button } from './button.tsx';
-import {
-  TICKET_COPY,
-  TICKET_PROGRESS_LABELS,
-  TICKET_REPLY_STATUS_LABELS,
-  TICKET_TEMPLATE_LABELS,
-} from './ticket-copy.ts';
+import { TICKET_COPY, TICKET_TEMPLATE_LABELS } from './ticket-copy.ts';
+import { TicketListItemStatus } from './ticket-list-item-status.tsx';
 import { formatTicketWait } from './ticket-time.ts';
 
 /** 左栏条目的安全摘要、选中状态、当前时间和选择回调。 */
@@ -32,23 +28,10 @@ export function TicketListItem({
   now,
   onSelect,
 }: TicketListItemProps): ReactElement {
-  const { initiator, templateName, group, replyStatus, verification, progress } = ticket;
+  const { initiator, templateName } = ticket;
   const template = TICKET_TEMPLATE_LABELS.get(templateName ?? '') ?? templateName;
   const wait = formatTicketWait({ createdAt: ticket.createdAt, now, isDaysOnly: true });
   const modelAndWait = [ticket.productModel, wait].filter(Boolean).join(TICKET_COPY.countSeparator);
-  const step = progress?.steps[progress.currentIndex];
-  const stepTone = progress?.state === 'waiting-for-others' ? 'finished' : 'awaiting-receipt';
-  const hasStatus =
-    group === 'transferred' || (group === 'replied' && replyStatus === 'awaiting-others');
-  const isDetailUnavailable =
-    verification === 'failed' &&
-    (!ticket.failures?.length || ticket.failures.some(({ part }) => part === 'detail'));
-  const verificationLabel =
-    verification === 'pending'
-      ? TICKET_COPY.prefetchPending
-      : isDetailUnavailable
-        ? TICKET_COPY.prefetchUnavailable
-        : null;
   return (
     <li>
       <Button
@@ -64,23 +47,7 @@ export function TicketListItem({
           {template && <span className="ticket-template-tag">{template}</span>}
         </span>
         <span className="ticket-list-wait">{modelAndWait}</span>
-        {(hasStatus || verificationLabel || step) && (
-          <span className="ticket-list-tags">
-            {hasStatus && (
-              <span className={`ticket-group-tag ticket-group-tag--${replyStatus}`}>
-                {TICKET_REPLY_STATUS_LABELS[replyStatus]}
-              </span>
-            )}
-            {step && progress && (
-              <span className={`ticket-group-tag ticket-group-tag--${stepTone}`}>
-                {step.shortName}
-                {TICKET_COPY.countSeparator}
-                {TICKET_PROGRESS_LABELS[progress.state]}
-              </span>
-            )}
-            {verificationLabel && <span className="ticket-verification">{verificationLabel}</span>}
-          </span>
-        )}
+        <TicketListItemStatus ticket={ticket} />
         {isAiAnswering && <span className="ticket-verification">{TICKET_COPY.aiAnswering}</span>}
       </Button>
     </li>

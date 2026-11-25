@@ -38,6 +38,21 @@ export function readTicketTime(value: unknown): string | null {
 }
 
 /**
+ * 选取接口提供的姓名，缺失时复用已核实的通讯录结果。
+ * @param options 接口姓名、成员标识和可选的已核实姓名映射。
+ * @returns 有实际姓名时返回姓名，缺失时返回 null。
+ * @throws 无；不调用通讯录。
+ */
+export function readTicketMemberName(options: {
+  name?: unknown;
+  userId: string | null;
+  names?: ReadonlyMap<string, string>;
+}): string | null {
+  const { name, userId, names } = options;
+  return readTicketText(name) ?? readTicketText(userId ? names?.get(userId) : null);
+}
+
+/**
  * 本人固定显示“我”；其他人优先接口姓名和已核实姓名缓存，最后回退成员标识末四位。
  * @param options 接口姓名、姓名映射、成员标识和已核实的当前用户标识。
  * @returns 供本机页面使用的成员文本；缺少所有信息时返回 null。
@@ -51,8 +66,7 @@ export function formatTicketMember(options: {
 }): string | null {
   const userId = readTicketText(options.userId);
   if (userId === options.currentUserId) return CURRENT_USER_TEXT;
-  const name =
-    readTicketText(options.name) ?? readTicketText(userId ? options.names?.get(userId) : null);
+  const name = readTicketMemberName({ name: options.name, userId, names: options.names });
   if (name) return name;
   if (!userId) return null;
   return `成员（${userId.slice(-MEMBER_ID_SUFFIX_LENGTH)}）`;

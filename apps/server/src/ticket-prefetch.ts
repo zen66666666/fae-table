@@ -24,6 +24,33 @@ const TRANSIENT_READ_REASONS = new Set<TicketReason>([
   'unknown',
 ]);
 
+type TransferOutSummary = Pick<
+  TicketSummary,
+  'isTransferredOut' | 'hasTransferOutActivity' | 'transferOutHandlerNames'
+>;
+
+/**
+ * 结合上次核实的转出证据与最新列表来源，决定是否展示转出及处理人信息。
+ * @param ticket 当前用于分组的摘要，包含最新已知状态及来源。
+ * @param evidence 需要保留或应用的转出证据。
+ * @returns 可覆盖旧投影的字段；不再属于转出分组时清除三个字段。
+ * @throws 无预期错误。
+ */
+export function projectTransferOutSummary(
+  ticket: TicketSummary,
+  evidence?: TransferOutSummary,
+): TransferOutSummary {
+  // 复用分组优先级，避免来源、终态或移交方向变化后仍展示旧处理人姓名。
+  const isVisible =
+    evidence?.isTransferredOut === true &&
+    getTicketGroup({ ...ticket, isTransferredOut: true }) === 'transferred-out';
+  return {
+    isTransferredOut: isVisible ? evidence.isTransferredOut : undefined,
+    hasTransferOutActivity: isVisible ? evidence.hasTransferOutActivity : undefined,
+    transferOutHandlerNames: isVisible ? evidence.transferOutHandlerNames : undefined,
+  };
+}
+
 function readProductModel(snapshot?: TicketDetailSnapshot): string | undefined {
   return snapshot?.detail
     ? getTicketProductModel(snapshot.detail.fields)?.trim() || undefined
@@ -64,11 +91,16 @@ function createPrefetchItem(options: {
     isTransferredToMe: ticket.isTransferredToMe === true || prior?.isTransferredToMe === true,
     progress: prior ? keepProgress(ticket, prior) : undefined,
   };
-  const replyStatus = getTicketReplyStatus(summary);
+  const transferOut = projectTransferOutSummary(
+    summary,
+    prior ?? cached?.detail?.summary ?? ticket,
+  );
+  const projected = { ...summary, ...transferOut };
+  const replyStatus = getTicketReplyStatus(projected);
   return {
     ...prior,
-    ...summary,
-    group: getTicketGroup(summary, replyStatus),
+    ...projected,
+    group: getTicketGroup(projected, replyStatus),
     replyStatus,
     verification: prior ? 'ready' : 'pending',
     detailReadAt: prior?.detailReadAt ?? null,
@@ -128,15 +160,17 @@ export function applyTicketDetailSummary(
   item: TicketListItem,
   result: TicketDetailSnapshot,
 ): TicketListItem {
+  // 1. 保留失败前的展示。2. 成功时用新详情更新并重新核实转出字段。
   const summary = result.detail?.summary;
   const failures =
     result.kind === 'success'
       ? undefined
       : (result.failures ?? [{ part: 'detail' as const, reason: result.reason }]);
-  // 失败单独用于计数，不覆写上次展示字段、读取时间或核实状态。
-  if (failures && item.verification === 'ready') return { ...item, failures };
+  // 1. 辅助字段读取失败不能推翻上次核实的转出；条目已包含本轮列表的来源与状态。
+  if (failures && item.verification === 'ready')
+    return { ...item, ...projectTransferOutSummary(item, item), failures };
   const status = isTicketFinished(item) ? item.status : (summary?.status ?? item.status);
-  return {
+  const updated: TicketListItem = {
     ...item,
     ...summary,
     // 详情可能早于本轮列表，不能覆写最新的来源资格。
@@ -153,6 +187,8 @@ export function applyTicketDetailSummary(
     productModel: readProductModel(result),
     failures,
   };
+  // 2. 只有完整详情可建立新的转出证据；成功后证据消失则应撤回旧投影。
+  return { ...updated, ...projectTransferOutSummary(updated, failures ? item : summary) };
 }
 
 /**

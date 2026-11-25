@@ -6,12 +6,13 @@ import type {
   TicketSummary,
 } from './ticket-types.ts';
 
-/** 左栏五组的固定展示顺序。 */
+/** 左栏各组的固定展示顺序。 */
 export const TICKET_GROUP_ORDER: readonly TicketGroup[] = [
   'pending',
   'transferred',
   'unreplied',
   'replied',
+  'transferred-out',
   'finished',
 ];
 // 钉钉审批实例的终态；未知或缺失状态不能猜测为已结束。
@@ -52,16 +53,19 @@ export function getTicketReplyStatus(ticket: TicketSummary): TicketReplyStatus {
  * 按终态、移交及回复进度分类，展示分组不承担审批写入授权。
  * @param ticket 最新可用的安全单据摘要。
  * @param replyStatus 可选的已计算状态，用于同时生成分组与状态标签。
- * @returns 左栏五组之一。
+ * @returns 左栏六组之一。
  * @throws 无。
  */
 export function getTicketGroup(
   ticket: TicketSummary,
   replyStatus = getTicketReplyStatus(ticket),
 ): TicketGroup {
-  // 1. 结束流程收归历史。2. 已核实移交的单据始终单列。3. 其余按进度分类。
+  // 1. 结束流程收归历史。2. 先检查移交给我，再判断是否已转出。3. 其余按进度分类。
   if (isTicketFinished(ticket)) return 'finished'; // 1.
   if (ticket.isTransferredToMe === true) return 'transferred'; // 2.
+  // 详情重读前仍保留上次的转出证据，列表新出现待办时立即停止按转出跟进。
+  if (ticket.isTransferredOut === true && !ticket.sources.includes('pending'))
+    return 'transferred-out';
   // 3. 已确认收到的待处理单据仍可审批，左栏按回复进度展示。
   if (replyStatus === 'awaiting-receipt') return 'pending';
   return replyStatus === 'unreplied' ? 'unreplied' : 'replied';

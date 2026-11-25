@@ -32,12 +32,13 @@ export const TICKET_REASON_DETAILS: Record<TicketReason, { label: string; nextSt
   },
 };
 
-/** 左栏按处理优先级展示的五个分组名称。 */
+/** 左栏按处理优先级展示的单据分组名称。 */
 export const TICKET_GROUP_LABELS: Record<TicketGroup, string> = {
   pending: '待我处理',
   transferred: '移交给我',
   unreplied: '未回复',
   replied: '已回复',
+  'transferred-out': '我移交给别人',
   finished: '已结束',
 };
 
@@ -82,6 +83,11 @@ export const TICKET_COPY = {
   processProgress: '流程进度',
   stepComplete: '已完成',
   aiAnswering: 'AI 回答中',
+  transferredOut: '已转交给他人',
+  transferOutActivity: '对方已处理',
+  transferOutQuiet: '暂无新动态',
+  formatTransferOutHandler: (name: string, count: number): string =>
+    count === 1 ? `${name}处理中` : `${name}等 ${count} 人处理中`,
   mine: '我',
   noFields: '没有可显示的表单字段。',
   settings: '连接设置',

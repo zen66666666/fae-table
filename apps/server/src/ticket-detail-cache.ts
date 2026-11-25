@@ -5,7 +5,7 @@ import {
   isTicketFinished,
 } from '../../../packages/core/src/index.ts';
 import { hasTicketOwnedRunningTask } from '../../../packages/dingtalk/src/index.ts';
-import { shouldRetryTicketDetail } from './ticket-prefetch.ts';
+import { projectTransferOutSummary, shouldRetryTicketDetail } from './ticket-prefetch.ts';
 import type {
   TicketDetailResult,
   TicketDetailSnapshot,
@@ -23,6 +23,21 @@ type PendingDetail = {
   state: ReadState;
   followup?: Promise<TicketDetailSnapshot>;
 };
+
+function projectCachedSummary(options: {
+  summary: TicketSummary;
+  current: TicketSummary;
+  evidence?: TicketSummary;
+}): TicketSummary {
+  const { summary, current, evidence } = options;
+  const ticket = {
+    ...summary,
+    status: isTicketFinished(current) ? current.status : summary.status,
+    isTransferredToMe: current.isTransferredToMe === true || summary.isTransferredToMe === true,
+  };
+  // 详情入口也以最新来源和终态限制转出姓名，避免点击时看到与列表不符的旧状态。
+  return { ...summary, ...projectTransferOutSummary(ticket, evidence) };
+}
 
 /** 详情缓存依赖；实际读取和完成通知由单据服务按当前身份提供。 */
 export type TicketDetailCacheOptions = {
@@ -92,7 +107,11 @@ export class TicketDetailCache {
             ...cached.result,
             detail: {
               ...detail,
-              summary: { ...detail.summary, sources: [...current.sources] },
+              summary: projectCachedSummary({
+                summary: { ...detail.summary, sources: [...current.sources] },
+                current,
+                evidence: detail.summary,
+              }),
             },
           },
         });
@@ -234,6 +253,11 @@ export class TicketDetailCache {
     const sources = hasLeftPending
       ? current.sources.filter((source) => source !== 'pending')
       : [...current.sources];
-    return { ...result.detail, summary: { ...result.detail.summary, sources } };
+    const { summary } = result.detail;
+    const evidence = result.kind === 'success' ? summary : this.peek(summary.id)?.detail?.summary;
+    return {
+      ...result.detail,
+      summary: projectCachedSummary({ summary: { ...summary, sources }, current, evidence }),
+    };
   }
 }

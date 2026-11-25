@@ -66,6 +66,12 @@ export type TicketSummary = {
   isAwaitingOthers?: boolean;
   /** 详情是否已核实有他人转交给当前用户；列表初读时可省略。 */
   isTransferredToMe?: boolean;
+  /** 是否已核实本轮由当前用户转出，且目前不由当前用户处理。 */
+  isTransferredOut?: boolean;
+  /** 最近一次本人转交之后是否有其他人的评论或审批动作。 */
+  hasTransferOutActivity?: boolean;
+  /** 已核实的进行中任务处理人姓名；有姓名缺失时省略，不包含人员标识。 */
+  transferOutHandlerNames?: readonly string[];
   /** 当前流程进度；原始证据不足或流程结束时省略。 */
   progress?: TicketProgress;
 };
@@ -139,8 +145,14 @@ export type TicketDetailResult = {
   failures?: TicketDetailFailure[];
 };
 
-/** 左栏按业务优先级排列的五个分组。 */
-export type TicketGroup = 'pending' | 'transferred' | 'unreplied' | 'replied' | 'finished';
+/** 左栏按处理和跟进需要划分的六个分组。 */
+export type TicketGroup =
+  | 'pending'
+  | 'transferred'
+  | 'unreplied'
+  | 'replied'
+  | 'transferred-out'
+  | 'finished';
 /** 根据关键步骤或评论确定的条目状态，用于分组、排序和标签。 */
 export type TicketReplyStatus = 'awaiting-receipt' | 'unreplied' | 'replied' | 'awaiting-others';
 /** 展示使用的详情可用状态，最近一次重读的失败另由条目记录。 */

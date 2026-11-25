@@ -1,20 +1,30 @@
-// 从审批详情核实已处理或仍待本人处理的转交，供单据详情投影使用。
-import { isObject } from '../../core/src/index.ts';
-import type { JsonObject, TicketSource } from '../../core/src/index.ts';
-import { getDetailOwnedRunningTask } from './approval-task-evidence.ts';
+// 核实审批单据的转入、转出与后续动态，供单据详情投影使用。
+import { isObject, isTicketFinished } from '../../core/src/index.ts';
+import type { JsonObject, TicketSource, TicketSummary } from '../../core/src/index.ts';
+import { getDetailOwnedRunningTask, hasDetailOwnedRunningTask } from './approval-task-evidence.ts';
+import { isApprovalAgreement, isApprovalRejection } from './approval-write-evidence.ts';
 import { isCompleteDingtalkResult } from './common.ts';
 import {
   getLatestTicketOperation,
+  hasCompleteTicketRecords,
   isTicketTaskOperation,
+  readTicketOperationEpoch,
   TICKET_REDIRECT_ACTION,
 } from './ticket-approval-records.ts';
+import type { TicketApprovalOperation } from './ticket-approval-records.ts';
 import { isTicketRecordPlaceholder } from './ticket-record-cleanup.ts';
 import { isTicketCommentAction } from './ticket-records.ts';
-import { readTicketText, readTicketTime } from './ticket-values.ts';
+import { readTicketMemberName, readTicketText, readTicketTime } from './ticket-values.ts';
 
 const REDIRECTED = 'REDIRECTED';
 const CANCELED = 'CANCELED';
+const RUNNING = 'RUNNING';
 const NON_HANDLING_ACTIONS = new Set(['CC', 'PROCESS_CC', 'START', 'START_PROCESS_INSTANCE']);
+
+type TicketTransferOut = Pick<
+  TicketSummary,
+  'isTransferredOut' | 'hasTransferOutActivity' | 'transferOutHandlerNames'
+>;
 
 type TransferRecord = {
   action: string | null;
@@ -139,4 +149,89 @@ export function isTicketTransferredToCurrentUser(options: {
     isOtherUserRedirect({ record: latest, userId, redirectActors }) &&
     getDetailOwnedRunningTask({ detail, userId, isSingleRunningTaskRequired: true }) !== null
   );
+}
+
+function readTransferOutHandlerNames(options: {
+  rows: unknown;
+  names: ReadonlyMap<string, string>;
+}): string[] | undefined {
+  const { rows, names } = options;
+  if (!Array.isArray(rows)) return;
+  const handlers = new Map<string, string | null>();
+  for (const task of rows) {
+    if (!isObject(task) || task.taskStatus !== RUNNING) continue;
+    const userId = readTicketText(task.userId);
+    if (userId === null || handlers.get(userId)) continue;
+    const name = readTicketMemberName({ name: task.userName, userId, names });
+    handlers.set(userId, name?.trim() === userId ? null : name);
+  }
+  const resolved = [...handlers.values()];
+  // 缺少姓名时隐藏整项，以免把成员编号或不完整的处理人数带到页面。
+  if (resolved.length && resolved.every((name) => name !== null)) return resolved;
+}
+
+function isTransferOutActivity(record: TicketApprovalOperation): boolean {
+  return (
+    record.type === TICKET_REDIRECT_ACTION ||
+    isTicketCommentAction(record.type) ||
+    isApprovalAgreement(record) ||
+    isApprovalRejection(record)
+  );
+}
+
+/**
+ * 核实本轮流程中从本人转出的单据，并提取后续动态和处理人姓名。
+ * @param options 摘要、完整详情及记录、已核实身份和可选姓名的查询结果。
+ * @returns 确定转出时返回对应标记和可展示的姓名，证据不足时返回空对象。
+ * @throws 无预期错误。
+ */
+export function readTicketTransferOut(options: {
+  summary: TicketSummary;
+  detail: JsonObject;
+  supplemental: JsonObject | null;
+  records: readonly JsonObject[];
+  userId: string;
+  isTransferredToMe: boolean;
+  names: ReadonlyMap<string, string>;
+}): TicketTransferOut {
+  // 1. 排除仍由本人负责或证据不全的单据。2. 核实本轮最后一次转出。3. 投影后续动态。
+  const { summary, detail, supplemental, records, userId, isTransferredToMe, names } = options;
+  if (
+    isTicketFinished(summary) ||
+    summary.sources.includes('pending') ||
+    isTransferredToMe ||
+    !hasCompleteTicketRecords(detail) ||
+    !hasCompleteTicketRecords(supplemental) ||
+    hasDetailOwnedRunningTask({ detail, userId }) !== false
+  )
+    return {}; // 1.
+
+  const epoch = readTicketOperationEpoch(records); // 2.
+  if (!epoch) return {};
+  const redirects = epoch.operations.filter(({ type }) => type === TICKET_REDIRECT_ACTION);
+  // 转交缺时间会改变先后顺序；同毫秒的其他动作也不能用接口数组顺序判断。
+  if (redirects.some(({ time }) => !Number.isFinite(time))) return {};
+  const latest = getLatestTicketOperation(
+    redirects.filter(({ actor, time }) => actor === userId && time > epoch.lastReset),
+  );
+  if (
+    !latest ||
+    epoch.operations.some((row) => row !== latest && row.time === latest.time) ||
+    // 更晚的匿名转交也可能是本人发起的，无法确认本次转出的时间。
+    redirects.some(({ actor, time }) => actor === null && time > latest.time)
+  ) {
+    return {};
+  }
+
+  // 3. 退回会开始新一轮，上一轮的转出已在上面的时间起点检查中排除。
+  const hasTransferOutActivity = epoch.operations.some(
+    (row) =>
+      Number.isFinite(row.time) &&
+      row.time > latest.time &&
+      row.actor !== null &&
+      row.actor !== userId &&
+      isTransferOutActivity(row),
+  );
+  const transferOutHandlerNames = readTransferOutHandlerNames({ rows: detail.tasks, names });
+  return { isTransferredOut: true, hasTransferOutActivity, transferOutHandlerNames };
 }

@@ -7,32 +7,21 @@ import {
   getLatestTicketOperation,
   hasCompleteTicketRecords,
   isTicketTaskOperation,
-  readTicketApprovalOperation,
+  readTicketOperationEpoch,
   TICKET_REDIRECT_ACTION,
 } from './ticket-approval-records.ts';
 import type { TicketApprovalOperation } from './ticket-approval-records.ts';
 import { getTicketProgressStepIndex, getTicketProgressSteps } from './ticket-progress-steps.ts';
-import { readTicketText } from './ticket-values.ts';
 
 function readCurrentOperations(
   records: readonly JsonObject[],
 ): TicketApprovalOperation[] | undefined {
-  let lastReset = -Infinity;
-  const operations: TicketApprovalOperation[] = [];
-  for (const row of records) {
-    const record = readTicketApprovalOperation(row);
-    if (!record) {
-      // 空占位和纯附件行不是操作；有节点或任务证据却没有动作时不能补猜。
-      if (readTicketText(row.activityId) || row.taskId != null) return;
-      continue;
-    }
-    if (!record.isReset && !isTicketTaskOperation(record.type)) continue;
-    if (!Number.isFinite(record.time)) return;
-    if (record.isReset) lastReset = Math.max(lastReset, record.time);
-    else operations.push(record);
-  }
+  const epoch = readTicketOperationEpoch(records);
+  if (!epoch) return;
+  const { lastReset } = epoch;
+  const operations = epoch.operations.filter(({ type }) => isTicketTaskOperation(type));
   // 退回与处理同一毫秒时无法确认先后，不能把旧的审批沿用到本轮。
-  if (operations.some(({ time }) => time === lastReset)) return;
+  if (operations.some(({ time }) => !Number.isFinite(time) || time === lastReset)) return;
   return operations.filter(({ time }) => time > lastReset);
 }
 

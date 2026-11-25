@@ -31,7 +31,7 @@ import { readTicketReplyProgress } from './ticket-reply.ts';
 import { createMemberNameResolver } from './member-name-resolver.ts';
 import type { MemberNameResolver } from './member-name-resolver.ts';
 import { resolveTicketMembers } from './ticket-members.ts';
-import { isTicketTransferredToCurrentUser } from './ticket-transfer.ts';
+import { isTicketTransferredToCurrentUser, readTicketTransferOut } from './ticket-transfer.ts';
 import { rememberTicketWriteEvidence } from './ticket-write-evidence.ts';
 
 type DetailParts = {
@@ -100,6 +100,35 @@ function getMissingParts(records: DetailPartRead, tasks: DetailPartRead): Ticket
   return failures;
 }
 
+function projectDetailSummary(options: {
+  parts: DetailParts;
+  records: JsonObject[];
+  tasks: JsonObject[];
+  names: ReadonlyMap<string, string>;
+}): TicketSummary {
+  const { parts, records, tasks, names } = options;
+  const { userId } = parts.identity;
+  const summary = projectTicketSummary({
+    payload: { ...parts.payload, tasks },
+    userId,
+    fallback: parts.ticket,
+    names,
+  });
+  const evidence = { detail: parts.payload, supplemental: parts.records, records, userId };
+  const isTransferredToMe = isTicketTransferredToCurrentUser({
+    detail: parts.payload,
+    userId,
+    sources: summary.sources,
+  });
+  return {
+    ...summary,
+    progress: readTicketProgress({ ...evidence, summary }),
+    ...readTicketReplyProgress({ ...evidence, status: summary.status }),
+    isTransferredToMe,
+    ...readTicketTransferOut({ ...evidence, summary, isTransferredToMe, names }),
+  };
+}
+
 async function buildDetail(parts: DetailParts): Promise<TicketDetail> {
   const { userId } = parts.identity;
   const tasks = mergeTicketTasks(parts.payload.tasks, parts.tasks?.taskIdList);
@@ -108,35 +137,9 @@ async function buildDetail(parts: DetailParts): Promise<TicketDetail> {
     parts.records?.operationRecords,
   );
   const names = await resolveTicketMembers({ ...parts, userId, records, tasks });
-  const summary = projectTicketSummary({
-    payload: { ...parts.payload, tasks },
-    userId,
-    fallback: parts.ticket,
-    names,
-  });
+  const summary = projectDetailSummary({ parts, records, tasks, names });
   const detail: TicketDetail = {
-    summary: {
-      ...summary,
-      progress: readTicketProgress({
-        summary,
-        detail: parts.payload,
-        supplemental: parts.records,
-        records,
-        userId,
-      }),
-      ...readTicketReplyProgress({
-        detail: parts.payload,
-        supplemental: parts.records,
-        records,
-        status: summary.status,
-        userId,
-      }),
-      isTransferredToMe: isTicketTransferredToCurrentUser({
-        detail: parts.payload,
-        userId,
-        sources: parts.ticket.sources,
-      }),
-    },
+    summary,
     businessId: readTicketText(parts.payload.businessId)?.trim() ?? null,
     fields: projectTicketFields(parts.payload.formValueVOS),
     attachments: collectTicketAttachments({

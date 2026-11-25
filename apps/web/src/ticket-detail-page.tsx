@@ -6,6 +6,7 @@ import type {
   TicketDetailSnapshot,
   TicketListItem,
   TicketRecord,
+  TicketSummary,
 } from '../../../packages/core/src/index.ts';
 import type { WorkbenchClient } from './api-client.ts';
 import { Button } from './button.tsx';
@@ -36,6 +37,31 @@ export type TicketDetailPageProps = {
 
 const NO_RECORDS: TicketRecord[] = [];
 
+function getMetadataSummary(
+  ticket: TicketListItem,
+  detail: TicketSummary | undefined,
+): TicketSummary {
+  if (!detail) return ticket;
+  const hasVerifiedTicket = ticket.verification === 'ready';
+  // 详情重读失败时列表仍可能带有已核实的移交状态，避免用旧详情覆盖它。
+  const transfer =
+    hasVerifiedTicket || typeof ticket.isTransferredOut === 'boolean'
+      ? {
+          isTransferredToMe: ticket.isTransferredToMe,
+          isTransferredOut: ticket.isTransferredOut,
+          hasTransferOutActivity: ticket.hasTransferOutActivity,
+          transferOutHandlerNames: ticket.transferOutHandlerNames,
+        }
+      : {};
+  return {
+    ...detail,
+    ...transfer,
+    status: isTicketFinished(ticket) ? ticket.status : detail.status,
+    sources: ticket.sources,
+    progress: hasVerifiedTicket ? ticket.progress : detail.progress,
+  };
+}
+
 /**
  * 点选时读取详情，预读完成后回取缓存；普通列表轮询不会重复发起现场读取。
  * @param props 单据、客户端、预读版本、当前时间和滚动回调。
@@ -62,7 +88,6 @@ export function TicketDetailPage({
     updatedDetail,
   });
   const detail = result?.detail;
-  const summary = detail?.summary;
   const detailRecords = detail?.records;
   const hasReadRecords =
     result?.kind === 'success' ||
@@ -80,16 +105,7 @@ export function TicketDetailPage({
   return (
     <section className="ticket-detail-content" aria-label={TICKET_COPY.detail}>
       <TicketMetadata
-        summary={
-          summary
-            ? {
-                ...summary,
-                status: isTicketFinished(ticket) ? ticket.status : summary.status,
-                sources: ticket.sources,
-                progress: ticket.verification === 'ready' ? ticket.progress : summary.progress,
-              }
-            : ticket
-        }
+        summary={getMetadataSummary(ticket, detail?.summary)}
         businessId={detail?.businessId ?? null}
         now={now}
         onRefreshTicket={onRefreshTicket}
