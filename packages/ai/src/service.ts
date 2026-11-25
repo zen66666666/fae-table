@@ -13,6 +13,7 @@ import { AiConfigCredentials } from './config-credentials.ts';
 import { parseAiConfig, parseAiModelsInput } from './config-input.ts';
 import { classifyInputError, isMatchingSettings } from './config-status.ts';
 import { waitForChat } from './chat-deadline.ts';
+import type { ChatClockOptions } from './chat-deadline.ts';
 import { requestAiChat } from './chat-request.ts';
 import type { AiChatStreamOptions } from './chat-request.ts';
 import { fetchAiModels, probeAiConnection } from './connection-test.ts';
@@ -24,14 +25,11 @@ import type { AiModelList } from './model-list.ts';
 import { createAiStorage } from './storage.ts';
 import type { AiSettings, AiStorage, AiStorageOptions } from './storage.ts';
 
-/** AI 服务可替换的本机目录、文件操作、系统加密和 HTTP 依赖。 */
+/** AI 服务可替换的目录、文件操作、系统加密、HTTP 和毫秒时钟依赖。 */
 export type AiServiceOptions = AiStorageOptions &
   Omit<DpapiOptions, 'maxEncodedBytes'> &
-  AiProbeOptions & {
-    keyProtection?: DpapiProtection;
-    /** 成功获取模型名单的可替换毫秒时钟。 */
-    now?: () => number;
-  };
+  AiProbeOptions &
+  ChatClockOptions & { keyProtection?: DpapiProtection };
 
 /**
  * 本机 AI 设置和探测能力；每项只公开安全状态或结果。

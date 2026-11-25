@@ -20,6 +20,10 @@ export type DpapiProtection = {
   unprotect: (encrypted: string) => Promise<string>;
 };
 
+function createDpapiError(): AppError {
+  return new AppError('configuration', 'ai_credential_unavailable', 'ai-credential');
+}
+
 function createDpapiScript(operation: 'Protect' | 'Unprotect'): string {
   // 由固定操作生成脚本；标准输入承载编码数据，避免将敏感信息放进脚本、命令行或环境。
   return [
@@ -48,7 +52,7 @@ async function invokeDpapi(
     maxEncodedBytes = DPAPI_OUTPUT_BYTES,
     ...dependencies
   } = options;
-  const error = new AppError('configuration', 'ai_credential_unavailable', 'ai-credential');
+  const error = createDpapiError();
   if (encodedInput.length > maxEncodedBytes || !BASE64_DATA.test(encodedInput)) throw error;
   try {
     const result = await runPowerShell({
@@ -87,14 +91,18 @@ export function createDpapiProtection(options: DpapiOptions = {}): DpapiProtecti
     maxEncodedBytes <= 0 ||
     maxEncodedBytes > DPAPI_MAX_ENCODED_BYTES
   )
-    throw new AppError('configuration', 'ai_credential_unavailable', 'ai-credential');
+    throw createDpapiError();
+  // 每四个 Base64 字符最多承载三个字节。先检查明文字节数，避免超限时仍分配编码数据。
+  const maxPlaintextBytes = Math.floor(maxEncodedBytes / 4) * 3;
   return {
-    protect: async (text) =>
-      await invokeDpapi({
+    protect: async (text) => {
+      if (Buffer.byteLength(text, 'utf8') > maxPlaintextBytes) throw createDpapiError();
+      return await invokeDpapi({
         ...options,
         operation: 'protect',
         encodedInput: Buffer.from(text, 'utf8').toString('base64'),
-      }),
+      });
+    },
     unprotect: async (encrypted) => {
       const encoded = await invokeDpapi({
         ...options,

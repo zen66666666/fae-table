@@ -65,14 +65,13 @@ const LOGIN_TIMEOUT_MS = 330_000;
 const DETAIL_TIMEOUT_MS = 120_000;
 // 对不明确的写入，要为上次结果复核和本次回读保留等待时间。
 const TICKET_WRITE_TIMEOUT_MS = 150_000;
-const AI_CHAT_TIMEOUT_MS = 120_000;
 const AI_CHAT_CONTENT_TYPE = 'text/event-stream';
 const TICKET_IMAGE_CONTENT_TYPE = 'image/';
 const TICKET_IMAGE_ACCEPT = 'image/*';
 const REQUEST_HEADER = { 'Content-Type': 'application/json', 'X-FAE-Request': '1' };
 type RequestOptions = {
   body?: object;
-  timeout?: number;
+  timeout?: number | null;
   method?: 'GET' | 'PUT';
   hasMarker?: boolean;
   signal?: AbortSignal;
@@ -221,13 +220,15 @@ export function createWorkbenchClient(fetcher: typeof fetch = fetch): WorkbenchC
       redirect,
     } = options;
     const headers = hasMarker || body !== undefined ? REQUEST_HEADER : undefined;
-    const deadline = AbortSignal.timeout(timeout);
+    const deadline = timeout === null ? undefined : AbortSignal.timeout(timeout);
+    const requestSignal =
+      signal && deadline ? AbortSignal.any([signal, deadline]) : (signal ?? deadline);
     const response = await fetcher(path, {
       method: method ?? (body === undefined ? 'GET' : 'POST'),
       credentials: 'same-origin',
       headers: accept ? { ...headers, Accept: accept } : headers,
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: signal ? AbortSignal.any([signal, deadline]) : deadline,
+      signal: requestSignal,
       redirect,
     });
     if (!response.ok) throw new RequestError((await response.json())?.reason ?? 'unknown');
@@ -248,7 +249,8 @@ export function createWorkbenchClient(fetcher: typeof fetch = fetch): WorkbenchC
         body: { question },
         signal,
         accept: AI_CHAT_CONTENT_TYPE,
-        timeout: AI_CHAT_TIMEOUT_MS,
+        // 模型空闲期限由后台处理；浏览器只在调用方取消时断开可持续的回答流。
+        timeout: null,
       });
       if (
         !response.body ||

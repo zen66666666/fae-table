@@ -5,6 +5,7 @@ import type {
   AiChatContext,
   AiChatActiveStatus,
   AiChatHistory,
+  AiChatNoAnswer,
   AiChatStopResult,
   TicketDetail,
   TicketListItem,
@@ -63,6 +64,7 @@ export class TicketAiChat {
   private readonly options: ChatOptions;
   private readonly textIndex = createManualTextIndex();
   private readonly pending = new Map<string, TicketAiRun>();
+  private readonly noAnswers = new Map<string, AiChatNoAnswer>();
   private isChangingModel = false;
   private account?: string;
 
@@ -122,6 +124,7 @@ export class TicketAiChat {
     this.account = account;
     for (const run of this.pending.values()) run.controller.abort();
     this.pending.clear();
+    this.noAnswers.clear();
   }
 
   /**
@@ -143,15 +146,19 @@ export class TicketAiChat {
         const history = cached ?? (await this.options.history.read(key));
         if (!canRead()) return null;
         const active = this.pending.get(id)?.snapshot;
+        const noAnswer = this.noAnswers.get(id);
         // 写入刚完成但内存运行标记还未清理时，仅返回已保存的一条，避免网页出现重影。
         return active && !history.turns.some((turn) => turn.id === active.runId)
           ? { ...history, active }
-          : history;
+          : noAnswer
+            ? { ...history, noAnswer }
+            : history;
       },
       clear: async () => {
         if (!canRead()) return null;
         if (this.pending.has(id))
           throw new AppError('configuration', 'ai_already_answering', 'ticket-ai-chat');
+        this.noAnswers.delete(id);
         const history = await this.options.history.clear(key);
         return canRead() ? history : null;
       },
@@ -167,7 +174,10 @@ export class TicketAiChat {
    * @throws 无预期错误。
    */
   noteRecent(input: { items: readonly TicketListItem[]; isOnlyProfile: boolean }): void {
-    if (this.account) this.options.history.noteRecent({ ...input, scope: this.account });
+    if (!this.account) return;
+    this.options.history.noteRecent({ ...input, scope: this.account });
+    const recent = new Set(input.items.map(({ id }) => id));
+    for (const id of this.noAnswers.keys()) if (!recent.has(id)) this.noAnswers.delete(id);
   }
 
   /**
@@ -207,6 +217,7 @@ export class TicketAiChat {
       question: input.question,
       startedAt: (this.options.now ?? Date.now)(),
     });
+    this.noAnswers.delete(input.id);
     this.pending.set(input.id, run);
     void this.runAnswer({
       ...input,
@@ -232,7 +243,14 @@ export class TicketAiChat {
     } catch {
       done = this.isCurrent(input) ? STREAM_FAILED : STOPPED_TICKET_AI_ANSWER;
     }
-    if (this.pending.get(input.id) === input.run) this.pending.delete(input.id);
+    if (this.pending.get(input.id) === input.run) {
+      this.pending.delete(input.id);
+      if (done.outcome.kind === 'no-answer') {
+        // 没有正文的回答不进入加密历史；只保留最近一次提示供断开的网页恢复。
+        const { runId, question } = input.run.snapshot;
+        this.noAnswers.set(input.id, { runId, question });
+      }
+    }
     input.emit(done);
   }
 
@@ -266,6 +284,7 @@ export class TicketAiChat {
       history: this.options.history,
       createId: () => input.run.snapshot.runId,
       onQuestion: (text) => input.run.updateQuestion(text),
+      now: this.options.now ?? Date.now,
       isCurrent: () => this.isCurrent(input),
     }); // 3.
   }

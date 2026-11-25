@@ -1,5 +1,5 @@
-// 向已校验的 OpenAI 兼容接口发起问答，从有界 SSE 响应中只转发文字。
-import { AppError, discardResponse, isObject } from '../../core/src/index.ts';
+// 向已校验的 OpenAI 兼容接口发起问答，从有界 SSE 响应中提取可展示的文字。
+import { AI_CHAT_ANSWER_LIMIT, AppError, discardResponse, isObject } from '../../core/src/index.ts';
 import type {
   AiChatContext,
   AiChatOutcome,
@@ -8,11 +8,12 @@ import type {
   AiConfigInput,
 } from '../../core/src/index.ts';
 import { createChatDeadline, waitForChat } from './chat-deadline.ts';
+import type { ChatClockOptions } from './chat-deadline.ts';
 import { AiChatKeyFilter } from './chat-key-filter.ts';
 import { clipChatText, createChatPrompt } from './chat-prompt.ts';
 import { AiChatSseReader, createChatFormatError } from './chat-sse.ts';
 import type { AiChatFrame } from './chat-sse.ts';
-import { AI_ENDPOINTS, CHAT_ANSWER_CHARS, MAX_RESPONSE_BYTES } from './constants.ts';
+import { AI_ENDPOINTS, CHAT_RESPONSE_BYTES } from './constants.ts';
 import { getAiEndpointUrl } from './endpoint.ts';
 import type { AiProbeOptions } from './connection-test.ts';
 
@@ -21,10 +22,11 @@ import type { AiProbeOptions } from './connection-test.ts';
  * @property question 本轮用户问题，只由本机路由验证长度和会话。
  * @property context 已投影且经权限检查的单据材料。
  * @property history 后台已保存的当前会话历史。
- * @property signal 停止按钮、视图切换或服务退出使用的取消信号。
+ * @property signal 用户停止、切换账号或服务退出时使用的取消信号。
  * @property onModel 在发送和发布材料前通知本次已固定的模型名称。
  * @property onQuestion 将移除凭据后的问题文字交给本机问答历史。
  * @property onContext 输出实际发送的材料计数和手册页码。
+ * @property onThinking 在正文前首次收到推理时通知状态，不携带文字。
  * @property onDelta 逐段交付已经遮蔽凭据的答复。
  */
 export type AiChatStreamOptions = {
@@ -35,15 +37,20 @@ export type AiChatStreamOptions = {
   onModel?: (model: string) => void;
   onQuestion?: (question: string) => void;
   onContext: (summary: AiChatSummary) => void;
+  onThinking?: () => void;
   onDelta: (text: string) => void;
 };
 
-type ChatReadOptions = Pick<AiChatStreamOptions, 'onDelta'> & {
+type ChatReadOptions = Pick<AiChatStreamOptions, 'onDelta' | 'onThinking'> & {
   body: NonNullable<Response['body']>;
   apiKey: string;
   deadline: ReturnType<typeof createChatDeadline>;
 };
-type FrameResult = { text?: string; kind?: 'complete' | 'truncated' | 'service-error' };
+type FrameResult = {
+  text?: string;
+  hasReasoning?: boolean;
+  kind?: 'complete' | 'truncated' | 'service-error';
+};
 
 function readFrame(frame: AiChatFrame): FrameResult {
   if (frame.event === 'error') return { kind: 'service-error' };
@@ -58,17 +65,20 @@ function readFrame(frame: AiChatFrame): FrameResult {
   if (!isObject(value) || value.error) return { kind: 'service-error' };
   const choice = Array.isArray(value.choices) ? value.choices[0] : undefined;
   if (!isObject(choice)) return {};
-  // 上游可以发送角色、推理或工具字段；只接受第一条选择的普通内容，不执行函数或工具。
-  const content = isObject(choice.delta) ? choice.delta.content : undefined;
-  const text = typeof content === 'string' ? content : undefined;
+  const delta = isObject(choice.delta) ? choice.delta : {};
+  // 推理只作为活动信号；不保留推理原文，也不接受模型返回的工具数据。
+  const output = {
+    text: typeof delta.content === 'string' ? delta.content : undefined,
+    hasReasoning: typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0,
+  };
   switch (choice.finish_reason) {
     case 'stop':
-      return { text, kind: 'complete' };
+      return { ...output, kind: 'complete' };
     case 'length':
-      return { text, kind: 'truncated' };
+      return { ...output, kind: 'truncated' };
     case null:
     case undefined:
-      return { text };
+      return output;
     default:
       return { kind: 'service-error' };
   }
@@ -78,6 +88,7 @@ class AnswerStream {
   private readonly options: ChatReadOptions;
   private readonly keyFilter: AiChatKeyFilter;
   private outputLength = 0;
+  private hasNotifiedThinking = false;
 
   constructor(options: ChatReadOptions) {
     this.options = options;
@@ -87,30 +98,37 @@ class AnswerStream {
   consume(frames: Iterable<AiChatFrame>): AiChatOutcome | undefined {
     for (const frame of frames) {
       this.options.deadline.signal.throwIfAborted();
-      const { text, kind } = readFrame(frame);
-      if (text) {
-        this.options.deadline.acceptText();
-        if (this.deliver(this.keyFilter.push(text))) return { kind: 'truncated' };
-      }
-      if (kind !== 'complete') {
-        if (kind) return { kind };
-        continue;
-      }
-      if (this.deliver(this.keyFilter.finish())) return { kind: 'truncated' };
-      return { kind: this.outputLength ? 'complete' : 'service-error' };
+      const { text, hasReasoning, kind } = readFrame(frame);
+      // 增量里的换行也是模型输出；SSE 保活本身不会解析成增量。
+      if (hasReasoning || text) this.options.deadline.acceptActivity();
+      if (hasReasoning) this.notifyThinking();
+      if (text && this.deliver(this.keyFilter.push(text))) return { kind: 'truncated' };
+      if (kind === 'service-error') return { kind };
+      if (kind === 'complete' && this.deliver(this.keyFilter.finish()))
+        return { kind: 'truncated' };
+      if (kind) return { kind: this.outputLength ? kind : 'no-answer' };
     }
     return undefined;
   }
 
+  private notifyThinking(): void {
+    if (this.outputLength || this.hasNotifiedThinking) return;
+    this.hasNotifiedThinking = true;
+    this.options.onThinking?.();
+    this.options.deadline.signal.throwIfAborted();
+  }
+
   private deliver(text: string): boolean {
-    const remaining = CHAT_ANSWER_CHARS - this.outputLength;
-    const accepted = clipChatText(text, remaining);
+    // 空白开头不能切换到正文状态，正文开始后保留段落及换行。
+    const visible = this.outputLength ? text : text.trimStart();
+    const remaining = AI_CHAT_ANSWER_LIMIT - this.outputLength;
+    const accepted = clipChatText(visible, remaining);
     if (accepted) {
       this.outputLength += accepted.length;
       this.options.onDelta(accepted);
       this.options.deadline.signal.throwIfAborted();
     }
-    return text.length > remaining;
+    return visible.length > remaining;
   }
 }
 
@@ -129,7 +147,7 @@ async function readAnswer(options: ChatReadOptions): Promise<AiChatOutcome> {
         break;
       }
       received += chunk.value.byteLength;
-      if (received > MAX_RESPONSE_BYTES) return { kind: 'truncated' };
+      if (received > CHAT_RESPONSE_BYTES) return { kind: 'truncated' };
       const outcome = answer.consume(frames.push(chunk.value)); // 2.
       if (outcome) return outcome;
     }
@@ -162,7 +180,10 @@ function getResponseFailure(response: Response, address: URL): AiChatOutcome | u
  */
 export async function requestAiChat(
   options: AiChatStreamOptions &
-    Pick<AiProbeOptions, 'fetch' | 'createTimeoutSignal'> & { config: AiConfigInput },
+    ChatClockOptions &
+    Pick<AiProbeOptions, 'fetch'> & {
+      config: AiConfigInput;
+    },
 ): Promise<AiChatOutcome> {
   // 1. 组装并发布材料计数。2. 请求同源接口。3. 按截止时间解析并交付回答。
   const { config } = options;
@@ -201,6 +222,7 @@ export async function requestAiChat(
       deadline,
       body: response.body,
       apiKey: config.apiKey,
+      onThinking: options.onThinking,
       onDelta: options.onDelta,
     }); // 3.
   } catch (error) {
@@ -211,6 +233,6 @@ export async function requestAiChat(
       }
     );
   } finally {
-    deadline.acceptText();
+    deadline.close();
   }
 }

@@ -12,6 +12,8 @@ export const AI_ACTIVE_ROUTE = '/api/ai/active';
 export const AI_CHAT_ACTIVE_POLL_INTERVAL_MS = 1_000;
 /** 用户问题的字符上限，允许安全放进有界 JSON 请求。 */
 export const AI_CHAT_QUESTION_LIMIT = 2_000;
+/** 可展示并保存的单轮正文上限，单位为 JavaScript 字符串码元。 */
+export const AI_CHAT_ANSWER_LIMIT = 50_000;
 /** 每张单据保留的最近完整或明确截断问答数量。 */
 export const AI_CHAT_HISTORY_LIMIT = 10;
 
@@ -67,6 +69,7 @@ export type AiChatOutcome = {
   kind:
     | 'complete'
     | 'truncated'
+    | 'no-answer'
     | 'timeout'
     | 'invalid-key'
     | 'rate-limited'
@@ -93,12 +96,22 @@ export type AiChatActive = {
   question: string;
   answer: string;
   startedAt: number;
+  /** 首段思考到达的毫秒时间；收到正文后不再返回。 */
+  thinkingStartedAt?: number;
   model?: string;
   summary?: AiChatSummary;
 };
 
-/** 网页恢复某张单据时取得的历史和运行中的回答。 */
-export type AiChatHistory = { turns: AiChatTurn[]; isSaveFailed?: true; active?: AiChatActive };
+/** 一次无正文结束的临时提示，只用于恢复当时的网页状态。 */
+export type AiChatNoAnswer = { runId: string; question: string };
+
+/** 网页恢复某张单据时取得的历史、运行中的回答或最近的无正文提示。 */
+export type AiChatHistory = {
+  turns: AiChatTurn[];
+  isSaveFailed?: true;
+  active?: AiChatActive;
+  noAnswer?: AiChatNoAnswer;
+};
 
 /** 左栏标记与模型互斥检查共用的本机问答状态。 */
 export type AiChatActiveStatus = { ticketIds: string[]; isAnswering: boolean };
@@ -110,5 +123,6 @@ export type AiChatStopResult = { kind: 'stopped' | 'not-running' };
 export type AiChatEvent =
   | { kind: 'started'; runId: string; startedAt: number }
   | { kind: 'context'; summary: AiChatSummary; model?: string }
+  | { kind: 'thinking'; startedAt: number }
   | { kind: 'delta'; text: string }
   | { kind: 'done'; outcome: AiChatOutcome; turnId?: string; isSaveFailed?: true; model?: string };

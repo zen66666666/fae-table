@@ -12,7 +12,8 @@ export const AI_CHAT_COPY = {
   stopping: '正在停止…',
   stopFailed: '未能停止回答，请重试。',
   modelsBusy: '有回答正在进行',
-  formatWaiting: (seconds: number): string => `AI 正在思考，已等待 ${seconds} 秒`,
+  formatWaiting: (seconds: number): string => `正在等待回答，已等待 ${seconds} 秒`,
+  formatThinking: (seconds: number): string => `思考中… 已思考 ${seconds} 秒`,
   askAgain: '重新提问',
   historyLoading: '正在读取对话…',
   historyFailed: '对话记录读取失败',
@@ -91,6 +92,7 @@ export function formatAiChatTrimmed(trimmed: AiChatSummary['trimmed']): string {
 export const AI_CHAT_OUTCOME_LABELS: Record<AiChatOutcome['kind'], string> = {
   complete: '',
   truncated: "回答较长已被截断，可以继续提问'继续'",
+  'no-answer': '模型思考时间过长，没有给出回答。可以再问一次，或换一个模型。',
   timeout: 'AI 响应超时',
   'invalid-key': 'API Key 无效，请在连接设置中检查。',
   'rate-limited': 'AI 接口请求过多，请稍后重试。',

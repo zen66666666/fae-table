@@ -1,5 +1,10 @@
 // 解码本机 AI 对话事件流，供同源 API 客户端读取逐步生成的文本。
-import { asObject, isAiModel, isObject } from '../../../packages/core/src/index.ts';
+import {
+  AI_CHAT_ANSWER_LIMIT,
+  asObject,
+  isAiModel,
+  isObject,
+} from '../../../packages/core/src/index.ts';
 import type {
   AiChatEvent,
   AiChatOutcome,
@@ -7,7 +12,10 @@ import type {
 } from '../../../packages/core/src/index.ts';
 import { AI_CHAT_OUTCOME_LABELS } from './ai-chat-copy.ts';
 
-const MAX_FRAME_LENGTH = 128 * 1024;
+const MAX_JSON_ESCAPE_UNITS = 6;
+const MAX_EVENT_ENVELOPE_LENGTH = 1024;
+// 控制字符或单个代理项最多占六个 JSON 代码单元，要留出合法大增量的转义空间。
+const MAX_FRAME_LENGTH = AI_CHAT_ANSWER_LIMIT * MAX_JSON_ESCAPE_UNITS + MAX_EVENT_ENVELOPE_LENGTH;
 const FRAME_SEPARATOR = '\n\n';
 const DATA_PREFIX = 'data:';
 const INVALID_STREAM = 'Invalid workbench AI stream';
@@ -73,6 +81,8 @@ function parseEvent(frame: string): AiChatEvent | null {
   const modelField = isAiModel(model) ? { model } : {};
   if (kind === 'started' && typeof runId === 'string' && runId && isCount(startedAt))
     return { kind, runId, startedAt };
+  // 思考事件只读取开始时间，即使收到额外字段，也不把其中的文字交给界面。
+  if (kind === 'thinking' && isCount(startedAt)) return { kind, startedAt };
   if (kind === 'context') return { kind, summary: parseSummary(summary), ...modelField };
   if (kind === 'delta' && typeof text === 'string') return { kind, text };
   if (

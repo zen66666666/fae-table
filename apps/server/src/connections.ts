@@ -57,6 +57,8 @@ export class ConnectionService {
       signal,
       fetch: dependencies.fetch,
       now: dependencies.now,
+      setTimer: dependencies.setTimer,
+      clearTimer: dependencies.clearTimer,
     });
     this.codeTable = new CodeTableService(context);
     this.manuals = new ManualService(context, {

@@ -104,6 +104,7 @@ export { AI_MODEL_LIMIT, AI_ROUTES, AI_TEST_KINDS, isAiModel } from './ai-types.
 export {
   AI_ACTIVE_ROUTE,
   AI_CHAT_ACTIVE_POLL_INTERVAL_MS,
+  AI_CHAT_ANSWER_LIMIT,
   AI_CHAT_CLEAR_SEGMENT,
   AI_CHAT_HISTORY_LIMIT,
   AI_CHAT_QUESTION_LIMIT,
@@ -117,6 +118,7 @@ export type {
   AiChatContext,
   AiChatEvent,
   AiChatHistory,
+  AiChatNoAnswer,
   AiChatOutcome,
   AiChatSummary,
   AiChatTurn,

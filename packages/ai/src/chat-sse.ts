@@ -1,6 +1,6 @@
 // 逐块还原有界 UTF-8 SSE 数据，供 AI 问答处理跨包文字和事件边界。
 import { AppError } from '../../core/src/index.ts';
-import { CHAT_EVENT_CHARS } from './constants.ts';
+import { CHAT_RESPONSE_BYTES } from './constants.ts';
 
 /** 模型端的一个 SSE 数据事件，不将原始响应作为页面内容。 */
 export type AiChatFrame = { event: string; data: string };
@@ -63,7 +63,7 @@ export class AiChatSseReader {
     this.suffix = input.slice(start); // 2.
     // 不重复扫描长行，只在下一块重查分片末尾尚未判定的 CR。
     this.scanned = this.suffix.length - Number(this.suffix.endsWith('\r'));
-    if (this.suffix.length > CHAT_EVENT_CHARS) throw createChatFormatError();
+    if (this.suffix.length > CHAT_RESPONSE_BYTES) throw createChatFormatError();
     if (isFinal) {
       // 3. 有的兼容服务结束前没有最后一个空行，仍核对其中的结束标记。
       if (this.suffix) this.readLine(this.suffix);
@@ -75,7 +75,7 @@ export class AiChatSseReader {
   }
 
   private readLine(line: string): AiChatFrame | undefined {
-    if (line.length > CHAT_EVENT_CHARS) throw createChatFormatError();
+    if (line.length > CHAT_RESPONSE_BYTES) throw createChatFormatError();
     if (!line) {
       const frame = this.parts.length
         ? { event: this.event, data: this.parts.join('\n') }
@@ -91,7 +91,7 @@ export class AiChatSseReader {
     if (name === 'event') this.event = value;
     if (name === 'data') {
       this.dataLength += value.length + 1;
-      if (this.dataLength > CHAT_EVENT_CHARS) throw createChatFormatError();
+      if (this.dataLength > CHAT_RESPONSE_BYTES) throw createChatFormatError();
       this.parts.push(value);
     }
     return undefined;

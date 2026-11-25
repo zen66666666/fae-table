@@ -26,21 +26,15 @@ export const TEST_MAX_TOKENS = 4;
 export const DPAPI_TIMEOUT_MS = 10_000;
 /** 系统 PowerShell 加密操作可捕获的输出上限。 */
 export const DPAPI_OUTPUT_BYTES = 16_384;
-/** DPAPI 单次调用的安全上限，供加密单张单据的本机问答记录。 */
-export const DPAPI_MAX_ENCODED_BYTES = 2 * 1024 * 1024;
+/** DPAPI 大型记录的 Base64 输入与输出上限，凭据仍使用独立的小容量上限。 */
+export const DPAPI_MAX_ENCODED_BYTES = 5 * 1024 * 1024;
 /** 能安全展示的 Key 后缀长度。 */
 export const KEY_SUFFIX_LENGTH = 4;
 /** 流式问答允许的已序列化请求字符数，按 JavaScript 字符长度计。 */
 export const CHAT_REQUEST_CHARS = 32_000;
-/** 生成模型最多使用的输出 token 数。 */
-export const CHAT_MAX_TOKENS = 1200;
-/** 最多向浏览器交付的回答字符数。 */
-export const CHAT_ANSWER_CHARS = 12_000;
-/** 开始请求后收到第一个文本分片的时限。 */
-export const CHAT_FIRST_TEXT_TIMEOUT_MS = 60_000;
-/** 单次对话自发起请求到结束的总时限。 */
-export const CHAT_TOTAL_TIMEOUT_MS = 120_000;
-/** 单个 SSE 行或事件允许的文本长度。 */
-export const CHAT_EVENT_CHARS = 256 * 1024;
+/** 流式问答整个响应允许的解码字节数，包含未展示的推理和 SSE 框架。 */
+export const CHAT_RESPONSE_BYTES = 16 * 1024 * 1024;
+/** 自请求开始或最近一次收到模型文字起允许的空闲时长。 */
+export const CHAT_IDLE_TIMEOUT_MS = 60_000;
 /** 授权凭据出现在资料或回答时使用的固定遮蔽文本。 */
 export const CHAT_REDACTED_KEY = '[已隐藏]';

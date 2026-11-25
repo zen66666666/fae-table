@@ -44,8 +44,15 @@ function applyEvent(
       return { ...turn, id: event.runId, runId: event.runId, startedAt: event.startedAt };
     case 'context':
       return { ...turn, summary: event.summary, model: event.model ?? turn.model };
+    case 'thinking':
+      if (turn.answer.trim() || turn.thinkingStartedAt !== undefined) return turn;
+      return { ...turn, thinkingStartedAt: event.startedAt };
     case 'delta':
-      return { ...turn, answer: turn.answer + event.text };
+      return {
+        ...turn,
+        answer: turn.answer + event.text,
+        thinkingStartedAt: event.text.trim() ? undefined : turn.thinkingStartedAt,
+      };
   }
 }
 

@@ -58,8 +58,14 @@ export class TicketAiRun {
     // 1. 只保存已受上游字数限制的增量，不额外保留所有流事件。
     if (event.kind === 'context')
       this.state = { ...this.state, summary: event.summary, model: event.model };
+    if (event.kind === 'thinking')
+      this.state = { ...this.state, thinkingStartedAt: event.startedAt };
     if (event.kind === 'delta')
-      this.state = { ...this.state, answer: this.state.answer + event.text };
+      this.state = {
+        ...this.state,
+        answer: this.state.answer + event.text,
+        thinkingStartedAt: undefined,
+      };
     for (const listener of this.listeners) {
       try {
         listener(event); // 2.

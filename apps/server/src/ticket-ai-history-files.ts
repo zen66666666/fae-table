@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { DPAPI_MAX_ENCODED_BYTES } from '../../../packages/ai/src/index.ts';
 import {
   readOptionalTextFile,
   removeOptionalFile,
@@ -20,8 +21,12 @@ export const AI_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1_000;
 const MAX_STORAGE_BYTES = 16 * 1024 * 1024;
 const ENCRYPTED_RECORD = /^[A-Za-z\d+/]+={0,2}$/u;
 
-/** 单张单据密文和 DPAPI 编解码的大小上限。 */
-export const AI_HISTORY_FILE_BYTES = 2 * 1024 * 1024;
+/**
+ * 单张单据密文上限，与 DPAPI 标准输入及输出的 Base64 字节上限一致。
+ * 10 轮各含 50000 字回答和 2000 字问题，按 JSON 每个 UTF-16 码元最多 6 字节转义计，
+ * 正文最多 3120000 字节。Base64 约扩至 4160000 字节，余量留给元数据和 DPAPI 包装。
+ */
+export const AI_HISTORY_FILE_BYTES = DPAPI_MAX_ENCODED_BYTES;
 
 /** AI 历史使用的可替换本机文件操作。 */
 export type TicketAiHistoryFileSystem = TextFileSystem &

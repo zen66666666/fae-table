@@ -11,6 +11,7 @@ import type { AiChatStreamOptions, AiService } from '../../../packages/ai/src/in
 import type { TicketAiHistory } from './ticket-ai-history.ts';
 
 const UNREACHABLE: AiChatOutcome = { kind: 'unreachable' };
+const NO_ANSWER: AiChatOutcome = { kind: 'no-answer' };
 
 /** 单据路由传入的已校验问题、取消信号与事件发送动作。 */
 export type TicketAiQuestion = {
@@ -28,7 +29,7 @@ export const STOPPED_TICKET_AI_ANSWER: TicketAiDone = {
 
 type StreamCallbacks = Pick<
   AiChatStreamOptions,
-  'onModel' | 'onQuestion' | 'onContext' | 'onDelta'
+  'onModel' | 'onQuestion' | 'onContext' | 'onThinking' | 'onDelta'
 >;
 type AnswerBuffer = { question: string; answer: string; summary?: AiChatSummary; model?: string };
 type StreamOptions = {
@@ -37,6 +38,7 @@ type StreamOptions = {
   filter: (value: string) => string;
   isManualWithoutText?: true;
   onQuestion?: (question: string) => void;
+  now: () => number;
   isCurrent: () => boolean;
   ai: Pick<AiService, 'streamAnswer'>;
   history: TicketAiHistory;
@@ -66,7 +68,10 @@ export function waitForChatStage<T>(
 }
 
 function bindStreamCallbacks(
-  options: Pick<StreamOptions, 'input' | 'isCurrent' | 'isManualWithoutText' | 'onQuestion'>,
+  options: Pick<
+    StreamOptions,
+    'input' | 'isCurrent' | 'isManualWithoutText' | 'onQuestion' | 'now'
+  >,
   buffer: AnswerBuffer,
 ): StreamCallbacks {
   const { input, isCurrent, isManualWithoutText } = options;
@@ -83,6 +88,10 @@ function bindStreamCallbacks(
       if (!isCurrent()) return;
       buffer.summary = { ...summary, isManualWithoutText };
       input.emit({ kind: 'context', summary: buffer.summary, model: buffer.model });
+    },
+    onThinking: () => {
+      // 只发送开始思考的时刻，思考内容不会进入事件或历史缓冲。
+      if (isCurrent()) input.emit({ kind: 'thinking', startedAt: options.now() });
     },
     onDelta: (text) => {
       if (!isCurrent()) return;
@@ -137,11 +146,15 @@ export async function streamTicketAiAnswer(options: StreamOptions): Promise<Tick
   if (!isCurrent()) return STOPPED_TICKET_AI_ANSWER;
   const kind = outcome?.kind;
   const { summary, answer, question, model } = buffer;
-  if (summary && answer && (kind === 'complete' || kind === 'truncated')) {
-    return await saveAnswer({
-      stream: options,
-      turn: { summary, answer, question, model, outcome: kind },
-    }); // 3.
+  if (kind === 'complete' || kind === 'truncated') {
+    if (!answer.trim())
+      return { kind: 'done', outcome: NO_ANSWER, model, isSaveFailed: saved?.isSaveFailed };
+    if (summary) {
+      return await saveAnswer({
+        stream: options,
+        turn: { summary, answer, question, model, outcome: kind },
+      }); // 3.
+    }
   }
   return {
     kind: 'done',

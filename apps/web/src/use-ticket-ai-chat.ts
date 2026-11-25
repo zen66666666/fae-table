@@ -26,6 +26,7 @@ export type AiChatDisplayTurn = {
   summary: AiChatSummary | null;
   outcome: AiChatOutcome['kind'] | null;
   startedAt?: number;
+  thinkingStartedAt?: number;
   model?: string;
   runId?: string;
 };
@@ -77,9 +78,23 @@ function mergeTurns(options: {
   const stored = options.stored?.turns ?? [];
   const knownIds = new Set(stored.map(({ id }) => id));
   // 持久结果与运行标识相同，取持久版本以免同一问答出现两个气泡。
-  return [...stored, ...options.recent.filter(({ id }) => !knownIds.has(id))].slice(
-    -AI_CHAT_HISTORY_LIMIT,
-  );
+  const recent = options.recent.filter(({ id }) => !knownIds.has(id));
+  const noAnswer = options.stored?.noAnswer;
+  // 已在流中看过结果时保留已有气泡；切回这张单据时从内存快照恢复同一个结果。
+  if (
+    noAnswer &&
+    !knownIds.has(noAnswer.runId) &&
+    !recent.some(({ id }) => id === noAnswer.runId)
+  ) {
+    recent.push({
+      id: noAnswer.runId,
+      question: noAnswer.question,
+      answer: '',
+      summary: null,
+      outcome: 'no-answer',
+    });
+  }
+  return [...stored, ...recent].slice(-AI_CHAT_HISTORY_LIMIT);
 }
 
 /**
@@ -125,7 +140,11 @@ export function useTicketAiChat(options: TicketAiChatOptions): TicketAiChatState
   });
   const turns = mergeTurns({ stored, recent: generation.recent });
   const observed = getActiveTurn(stored?.active);
-  const pending = generation.current ?? observed ?? (isReattaching ? detached?.turn : null);
+  const reconnecting = isReattaching ? detached?.turn : null;
+  // 重接前先保留同一轮最后收到的思考时间，较早的快照不能把计时退回发送时刻。
+  const resumed =
+    reconnecting && (!observed || observed.runId === reconnecting.runId) ? reconnecting : observed;
+  const pending = generation.current ?? resumed;
   const current = pending && !turns.some(({ id }) => id === pending.id) ? pending : null;
   const isGenerating = Boolean(current || isReattaching || (isKnownActive && !pending));
   useTicketPolling({

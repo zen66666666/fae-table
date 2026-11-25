@@ -11,5 +11,7 @@ export type { AiChatStreamOptions } from './chat-request.ts';
 export { readAiConfigInput, readAiModelsInput } from './config-input.ts';
 /** createDpapiProtection 创建由当前 Windows 用户保护的本机文本加解密。 */
 export { createDpapiProtection } from './dpapi.ts';
+/** 大型本机密文可使用的 Base64 大小上限，与调用进程的输入输出上限一致。 */
+export { DPAPI_MAX_ENCODED_BYTES } from './constants.ts';
 /** 本机文本加解密能力及其可替换的系统依赖。 */
 export type { DpapiOptions, DpapiProtection } from './dpapi.ts';

@@ -32,7 +32,9 @@ export function AiChatTurn({
   onRetry,
   ...actions
 }: AiChatTurnProps): ReactElement {
-  const { question, answer, summary, outcome, startedAt, model } = turn;
+  const { question, answer, summary, outcome, startedAt, thinkingStartedAt, model } = turn;
+  const feedbackStartedAt = thinkingStartedAt ?? startedAt;
+  const isThinking = thinkingStartedAt !== undefined;
   const hasAnswer = Boolean(answer.trim());
   const hasManual = Boolean(summary?.manualPages.length);
   const trimmed = formatAiChatTrimmed(summary?.trimmed);
@@ -47,8 +49,14 @@ export function AiChatTurn({
       </p>
       <div className="ai-chat-answer" aria-label={AI_CHAT_COPY.answer}>
         {trimmed && <p className="muted">{trimmed}</p>}
-        {outcome === null && !hasAnswer && startedAt !== undefined && (
-          <AiChatWaiting startedAt={startedAt} clock={clock} now={now} />
+        {outcome === null && !hasAnswer && feedbackStartedAt !== undefined && (
+          <AiChatWaiting
+            key={feedbackStartedAt}
+            startedAt={feedbackStartedAt}
+            isThinking={isThinking}
+            clock={clock}
+            now={now}
+          />
         )}
         {hasAnswer && (
           <>
